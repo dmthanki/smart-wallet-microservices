@@ -1,0 +1,3 @@
+com\smartwallet\gateway\controller\FallbackController.class
+com\smartwallet\gateway\ApiGatewayApplication.class
+com\smartwallet\gateway\config\GatewayRoutesConfig.class
