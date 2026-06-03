@@ -1,0 +1,12 @@
+E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\domain\FraudLogEntity.java
+E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\domain\FraudRuleEntity.java
+E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\engine\FraudRuleEngine.java
+E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\kafka\FraudAnalysisConsumer.java
+E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\repository\FraudLogRepository.java
+E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\repository\FraudRuleRepository.java
+E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\repository\TransactionLogStore.java
+E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\rules\AmountThresholdRule.java
+E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\rules\FraudRule.java
+E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\rules\GeoAnomalyRule.java
+E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\rules\OffHoursRule.java
+E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\rules\VelocityRule.java

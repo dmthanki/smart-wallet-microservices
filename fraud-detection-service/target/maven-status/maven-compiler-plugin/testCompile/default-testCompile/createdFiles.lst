@@ -1,0 +1,7 @@
+com\smartwallet\fraud\engine\FraudRuleEngineTest$PeerToPeerTests.class
+com\smartwallet\fraud\engine\FraudRuleEngineTest.class
+com\smartwallet\fraud\engine\FraudRuleEngineTest$MerchantPaymentTests.class
+com\smartwallet\fraud\engine\FraudRuleEngineTest$FraudVerdictEventTests.class
+com\smartwallet\fraud\engine\FraudRuleEngineTest$TransactionDtoConstructionTests.class
+com\smartwallet\fraud\engine\FraudRuleEngineTest$WithdrawalTests.class
+com\smartwallet\fraud\repository\TransactionLogStoreTest.class
