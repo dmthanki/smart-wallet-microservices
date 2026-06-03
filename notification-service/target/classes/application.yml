@@ -1,0 +1,107 @@
+spring:
+  application:
+    name: notification-service
+
+  # ── Java 21 Virtual Threads ───────────────────────────────────────────────
+  # Applies to: Tomcat request threads, @KafkaListener dispatch threads,
+  # @Scheduled tasks, and any Spring-managed executor. RestClient HTTP calls
+  # park the virtual thread during I/O — zero platform thread blocking.
+  threads:
+    virtual:
+      enabled: true
+
+  # ── Datasource (notification_db) ─────────────────────────────────────────
+  datasource:
+    url: jdbc:postgresql://localhost:5434/notification_db
+    username: ${DB_USER:wallet}
+    password: ${DB_PASS:wallet}
+    hikari:
+      # Smaller pool is intentional: virtual threads park while waiting for
+      # a connection, so fewer connections serve more concurrent operations.
+      maximum-pool-size: 8
+      minimum-idle: 3
+      connection-timeout: 3000
+      idle-timeout: 600000
+      pool-name: NotifHikariPool
+
+  # ── JPA / Hibernate ───────────────────────────────────────────────────────
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 20
+          order_inserts: true
+
+  # ── Kafka consumer ────────────────────────────────────────────────────────
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: notification-service-group
+      auto-offset-reset: earliest
+      # Manual offset commit — we only ack after the outbox row is persisted,
+      # ensuring at-least-once delivery even if the webhook call fails.
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.smartwallet.*"
+        # Allow deserialiser to map to the correct type from the type header
+        spring.json.use.type.headers: true
+        max.poll.records: 50
+        max.poll.interval.ms: 300000
+        session.timeout.ms: 45000
+    listener:
+      # MANUAL_IMMEDIATE: offset committed immediately after acknowledgement
+      # in the listener — gives us full control over when to commit.
+      ack-mode: MANUAL_IMMEDIATE
+      # One virtual thread per partition — concurrency handled by the JVM scheduler
+      concurrency: 3
+      missing-topics-fatal: false
+
+# ── n8n webhook configuration ─────────────────────────────────────────────
+notification:
+  n8n:
+    webhook-url: ${N8N_WEBHOOK_URL:http://localhost:5678/webhook/smart-wallet-alerts}
+    # Bearer token set in n8n workflow's "Header Auth" node
+    auth-token: ${N8N_AUTH_TOKEN:dev-token-change-in-prod}
+    # RestClient timeouts (milliseconds)
+    connect-timeout-ms: 3000
+    read-timeout-ms: 8000
+  outbox:
+    # Retry scheduler: runs every 30 seconds
+    retry-interval-ms: 30000
+    # Max retry attempts before marking a record as DEAD
+    max-retries: 5
+    # How many failed records to process per scheduler tick
+    batch-size: 20
+    # Exponential back-off base (seconds): attempt^2 * base
+    backoff-base-seconds: 10
+
+# ── Server ────────────────────────────────────────────────────────────────
+server:
+  port: 8083
+
+# ── Actuator / Metrics ────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  health:
+    kafka:
+      enabled: true
+
+# ── Logging ───────────────────────────────────────────────────────────────
+logging:
+  level:
+    com.smartwallet.notification: INFO
+    org.springframework.kafka: WARN
+    org.hibernate.SQL: WARN

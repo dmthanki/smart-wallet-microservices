@@ -1,0 +1,8 @@
+com\smartwallet\notification\scheduler\OutboxSchedulerTest$DispatchResultRouting.class
+com\smartwallet\notification\scheduler\OutboxSchedulerTest$SequencedCollectionTests.class
+com\smartwallet\notification\client\N8nWebhookClientTest.class
+com\smartwallet\notification\consumer\NotificationConsumerTest$FraudVerdictEvents.class
+com\smartwallet\notification\consumer\NotificationConsumerTest$TransactionCreatedEvents.class
+com\smartwallet\notification\scheduler\OutboxSchedulerTest.class
+com\smartwallet\notification\consumer\NotificationConsumerTest$DispatchResultRouting.class
+com\smartwallet\notification\consumer\NotificationConsumerTest.class
