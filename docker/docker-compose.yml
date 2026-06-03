@@ -1,0 +1,147 @@
+version: '3.9'
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Smart Wallet — Local Development Stack
+# Services: Kafka (KRaft mode, no ZooKeeper), PostgreSQL ×3, n8n
+# Run: docker compose up -d
+# ══════════════════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── Kafka (KRaft mode — no ZooKeeper dependency) ──────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: smart-wallet-kafka
+    ports:
+      - "9092:9092"
+      - "9101:9101"    # JMX
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qg"
+      # Topic auto-creation with sane defaults
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ── Kafka UI — topic browser ───────────────────────────────────────────────
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: smart-wallet-kafka-ui
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: smart-wallet
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  # ── PostgreSQL: transaction-service ───────────────────────────────────────
+  postgres-txn:
+    image: postgres:16-alpine
+    container_name: smart-wallet-txn-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: transaction_db
+      POSTGRES_USER: wallet
+      POSTGRES_PASSWORD: wallet
+    volumes:
+      - pgdata-txn:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wallet -d transaction_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── PostgreSQL: fraud-detection-service ───────────────────────────────────
+  postgres-fraud:
+    image: postgres:16-alpine
+    container_name: smart-wallet-fraud-db
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: fraud_db
+      POSTGRES_USER: wallet
+      POSTGRES_PASSWORD: wallet
+    volumes:
+      - pgdata-fraud:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wallet -d fraud_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── PostgreSQL: notification-service ──────────────────────────────────────
+  postgres-notif:
+    image: postgres:16-alpine
+    container_name: smart-wallet-notif-db
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: wallet
+      POSTGRES_PASSWORD: wallet
+    volumes:
+      - pgdata-notif:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wallet -d notification_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── n8n — workflow automation (Notification Service webhook target) ────────
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: smart-wallet-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: admin
+      N8N_BASIC_AUTH_PASSWORD: admin
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://localhost:5678/
+    volumes:
+      - n8n-data:/home/node/.n8n
+    depends_on:
+      - postgres-notif
+
+  # ── Prometheus — metrics scraping ─────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: smart-wallet-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+volumes:
+  kafka-data:
+  pgdata-txn:
+  pgdata-fraud:
+  pgdata-notif:
+  n8n-data:

@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ══════════════════════════════════════════════════════════════
+     ROOT pom.xml — smart-wallet multi-module Maven project
+     Java 21 LTS + Spring Boot 3.3.x
+     ══════════════════════════════════════════════════════════════ -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- ── Coordinates ───────────────────────────────────────────────────── -->
+    <groupId>com.smartwallet</groupId>
+    <artifactId>smart-wallet</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Smart Wallet Transaction &amp; Fraud Monitoring System</name>
+
+    <!-- ── Child modules ─────────────────────────────────────────────────── -->
+    <modules>
+        <module>common-lib</module>
+        <module>transaction-service</module>
+        <module>fraud-detection-service</module>
+        <module>notification-service</module>
+        <module>api-gateway</module>
+    </modules>
+
+    <!-- ── Inherit Spring Boot BOM ───────────────────────────────────────── -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.2</version>
+        <relativePath/>
+    </parent>
+
+    <!-- ── Global properties ─────────────────────────────────────────────── -->
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <!-- Enable Java 21 preview features if needed (e.g., unnamed patterns) -->
+        <!-- <maven.compiler.enablePreview>true</maven.compiler.enablePreview> -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Dependency versions — centralised here, referenced in child poms -->
+        <spring-cloud.version>2023.0.3</spring-cloud.version>
+        <lombok.version>1.18.40</lombok.version>
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <testcontainers.version>1.19.8</testcontainers.version>
+        <kafka.version>3.7.0</kafka.version>
+        <flyway.version>10.15.0</flyway.version>
+        <micrometer.version>1.13.1</micrometer.version>
+    </properties>
+
+    <!-- ── Dependency management — versions declared once ───────────────── -->
+    <dependencyManagement>
+        <dependencies>
+
+            <!-- Internal modules -->
+            <dependency>
+                <groupId>com.smartwallet</groupId>
+                <artifactId>common-lib</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Testcontainers BOM — manages all tc module versions -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- MapStruct — compile-time safe DTO ↔ entity mapping -->
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+
+            <!-- Spring Cloud BOM — manages all Cloud coordinate versions -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- ── Dependencies shared by ALL modules ────────────────────────────── -->
+    <dependencies>
+
+        <!-- Lombok — still used for @Slf4j, @Data on entities where records don't fit -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Universal test dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <!-- ── Build plugins ─────────────────────────────────────────────────── -->
+    <build>
+        <pluginManagement>
+            <plugins>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <source>21</source>
+                        <target>21</target>
+                        <!-- MapStruct + Lombok must be declared in this order -->
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                            <path>
+                                <groupId>org.mapstruct</groupId>
+                                <artifactId>mapstruct-processor</artifactId>
+                                <version>${mapstruct.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+
+                <!-- Surefire 3.x required for JUnit 5 -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.2.5</version>
+                    <configuration>
+                        <argLine>-XX:+EnableDynamicAgentLoading</argLine>
+                    </configuration>
+                </plugin>
+
+            </plugins>
+        </pluginManagement>
+    </build>
+
+</project>

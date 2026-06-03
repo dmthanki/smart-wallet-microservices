@@ -1,0 +1,10 @@
+com\smartwallet\common\enums\TransactionType$Deposit.class
+com\smartwallet\common\events\FraudVerdictEvent$Verdict.class
+com\smartwallet\common\dto\TransactionDto$Builder.class
+com\smartwallet\common\dto\TransactionDto.class
+com\smartwallet\common\enums\TransactionType.class
+com\smartwallet\common\dto\TransactionDto$TransactionStatus.class
+com\smartwallet\common\events\FraudVerdictEvent.class
+com\smartwallet\common\enums\TransactionType$PeerToPeer.class
+com\smartwallet\common\enums\TransactionType$Withdrawal.class
+com\smartwallet\common\enums\TransactionType$MerchantPayment.class
