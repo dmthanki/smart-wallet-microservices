@@ -1,6 +1,8 @@
+E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\controller\FraudController.java
 E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\domain\FraudLogEntity.java
 E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\domain\FraudRuleEntity.java
 E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\engine\FraudRuleEngine.java
+E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\FraudDetectionServiceApplication.java
 E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\kafka\FraudAnalysisConsumer.java
 E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\repository\FraudLogRepository.java
 E:\New folder\smart-wallet\fraud-detection-service\src\main\java\com\smartwallet\fraud\repository\FraudRuleRepository.java

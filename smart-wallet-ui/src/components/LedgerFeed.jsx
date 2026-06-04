@@ -70,7 +70,7 @@ export default function LedgerFeed({ transactions, loading, onRefresh }) {
     <div className="glass rounded-2xl p-6 shadow-sm border border-slate-200/50 dark:border-slate-800/50">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-lg font-bold text-slate-800 dark:text-white">Transaction Ledger (Count: {transactions.length}, Loading: {loading ? 'yes' : 'no'})</h2>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-white">Transaction Ledger</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">Live chronological view of transaction state updates</p>
         </div>
         <button

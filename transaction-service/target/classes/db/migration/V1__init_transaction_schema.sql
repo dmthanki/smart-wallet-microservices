@@ -21,7 +21,7 @@ CREATE TABLE accounts (
     account_type        VARCHAR(20)     NOT NULL CHECK (account_type IN ('PERSONAL', 'MERCHANT', 'ESCROW')),
     available_balance   NUMERIC(19, 4)  NOT NULL DEFAULT 0.0000,
     reserved_balance    NUMERIC(19, 4)  NOT NULL DEFAULT 0.0000,
-    currency            CHAR(3)         NOT NULL DEFAULT 'INR',
+    currency            VARCHAR(3)      NOT NULL DEFAULT 'INR',
     status              VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE'
                                         CHECK (status IN ('ACTIVE', 'SUSPENDED', 'CLOSED')),
     merchant_id         VARCHAR(100),                        -- NULL for personal accounts
@@ -64,7 +64,7 @@ CREATE TABLE transactions (
     idempotency_key         VARCHAR(128)    NOT NULL,
     source_account_id       UUID            NOT NULL REFERENCES accounts(id),
     amount                  NUMERIC(19, 4)  NOT NULL CHECK (amount > 0),
-    currency                CHAR(3)         NOT NULL,
+    currency                VARCHAR(3)      NOT NULL,
     type_kind               VARCHAR(30)     NOT NULL
                                             CHECK (type_kind IN (
                                                 'PEER_TO_PEER', 'WITHDRAWAL',
@@ -91,6 +91,21 @@ CREATE TABLE transactions_2025_02
     PARTITION OF transactions
     FOR VALUES FROM ('2025-02-01') TO ('2025-03-01');
 
+CREATE TABLE transactions_2026_05
+    PARTITION OF transactions
+    FOR VALUES FROM ('2026-05-01') TO ('2026-06-01');
+
+CREATE TABLE transactions_2026_06
+    PARTITION OF transactions
+    FOR VALUES FROM ('2026-06-01') TO ('2026-07-01');
+
+CREATE TABLE transactions_2026_07
+    PARTITION OF transactions
+    FOR VALUES FROM ('2026-07-01') TO ('2026-08-01');
+
+CREATE TABLE transactions_default
+    PARTITION OF transactions DEFAULT;
+
 -- In production: a pg_cron job or Flyway migration auto-creates future partitions.
 
 -- ── Indexes on the parent table (inherited by all partitions) ─────────────────
@@ -99,9 +114,9 @@ CREATE TABLE transactions_2025_02
 CREATE INDEX idx_txn_source_created
     ON transactions (source_account_id, created_at DESC);
 
--- Idempotency enforcement (unique across all partitions)
+-- Idempotency enforcement (unique across all partitions, must include partitioning column)
 CREATE UNIQUE INDEX idx_txn_idempotency
-    ON transactions (idempotency_key);
+    ON transactions (idempotency_key, created_at);
 
 -- Status filter: fraud queue workers poll for PENDING_FRAUD_CHECK rows
 -- Partial index — only indexes the subset of rows actually needing work

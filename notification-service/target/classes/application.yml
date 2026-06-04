@@ -51,6 +51,7 @@ spring:
         spring.json.trusted.packages: "com.smartwallet.*"
         # Allow deserialiser to map to the correct type from the type header
         spring.json.use.type.headers: true
+        spring.json.value.default.type: "com.smartwallet.common.dto.TransactionDto"
         max.poll.records: 50
         max.poll.interval.ms: 300000
         session.timeout.ms: 45000

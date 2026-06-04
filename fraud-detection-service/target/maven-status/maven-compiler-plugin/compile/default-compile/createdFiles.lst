@@ -4,9 +4,11 @@ com\smartwallet\fraud\domain\FraudRuleEntity.class
 com\smartwallet\fraud\rules\GeoAnomalyRule.class
 com\smartwallet\fraud\rules\FraudRule.class
 com\smartwallet\fraud\rules\AmountThresholdRule.class
+com\smartwallet\fraud\controller\FraudController.class
 com\smartwallet\fraud\repository\FraudLogRepository.class
 com\smartwallet\fraud\repository\FraudRuleRepository.class
 com\smartwallet\fraud\kafka\FraudAnalysisConsumer.class
+com\smartwallet\fraud\FraudDetectionServiceApplication.class
 com\smartwallet\fraud\rules\OffHoursRule.class
 com\smartwallet\fraud\rules\VelocityRule.class
 com\smartwallet\fraud\repository\TransactionLogStore.class

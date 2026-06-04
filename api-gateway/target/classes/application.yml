@@ -37,3 +37,7 @@ resilience4j:
         baseConfig: default
         slowCallDurationThreshold: 3s
         slowCallRateThreshold: 50
+      fraudCircuitBreaker:
+        baseConfig: default
+        slowCallDurationThreshold: 3s
+        slowCallRateThreshold: 50
