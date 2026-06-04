@@ -47,7 +47,7 @@ public class TransactionEntity {
     private String idempotencyKey;
 
     @Column(name = "source_account_id", nullable = false)
-    private String sourceAccountId;
+    private UUID sourceAccountId;
 
     @Column(name = "amount", nullable = false, precision = 19, scale = 4)
     private BigDecimal amount;
@@ -88,7 +88,7 @@ public class TransactionEntity {
         TransactionEntity e = new TransactionEntity();
         e.id                = dto.transactionId();
         e.idempotencyKey    = dto.idempotencyKey();
-        e.sourceAccountId   = dto.sourceAccountId();
+        e.sourceAccountId   = UUID.fromString(dto.sourceAccountId());
         e.amount            = dto.amount();
         e.currency          = dto.currency().getCurrencyCode();
         e.status            = dto.status();
@@ -119,50 +119,49 @@ public class TransactionEntity {
         TransactionType type = deserializeType(typeKind, typePayload);
 
         return new TransactionDto(
-                id, idempotencyKey, sourceAccountId,
+                id, idempotencyKey, sourceAccountId.toString(),
                 amount, Currency.getInstance(currency),
                 type, status, initiatedByUserId,
                 createdAt, processedAt);
     }
 
-    // ── Serialisation helpers (simplified — use Jackson in production) ────────
+    // ── Serialisation helpers using Jackson ────────
 
     private static String serializeType(TransactionType type) {
-        // JAVA 21: switch expression for type serialisation
-        return switch (type) {
-            case TransactionType.PeerToPeer(var r, var n) ->
-                    """
-                    {"recipientAccountId":"%s","note":"%s"}
-                    """.formatted(r, n == null ? "" : n).strip();
-            case TransactionType.Withdrawal(var b, var i) ->
-                    """
-                    {"destinationBankCode":"%s","instantTransfer":%b}
-                    """.formatted(b, i).strip();
-            case TransactionType.Deposit(var s) ->
-                    """
-                    {"sourceReference":"%s"}
-                    """.formatted(s).strip();
-            case TransactionType.MerchantPayment(var id, var name, var mcc) ->
-                    """
-                    {"merchantId":"%s","merchantName":"%s","mcc":%d}
-                    """.formatted(id, name, mcc).strip();
-        };
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(type);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize transaction type", e);
+        }
     }
 
+    @SuppressWarnings("unchecked")
     private static TransactionType deserializeType(String kind, String payload) {
-        // Simplified: in production use Jackson to deserialise the payload JSON.
-        // The switch expression ensures exhaustive handling of all known discriminators.
-        return switch (kind) {
-            case "PEER_TO_PEER"    ->
-                    new TransactionType.PeerToPeer("parsed-from-json", null);
-            case "WITHDRAWAL"      ->
-                    new TransactionType.Withdrawal("parsed-from-json", false);
-            case "DEPOSIT"         ->
-                    new TransactionType.Deposit("parsed-from-json");
-            case "MERCHANT_PAYMENT" ->
-                    new TransactionType.MerchantPayment("id", "name", 0);
-            default -> throw new IllegalStateException("Unknown transaction kind: " + kind);
-        };
+        try {
+            var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            java.util.Map<String, Object> map = mapper.readValue(payload, java.util.Map.class);
+            return switch (kind) {
+                case "PEER_TO_PEER" -> new TransactionType.PeerToPeer(
+                        (String) map.get("recipientAccountId"),
+                        (String) map.get("note")
+                );
+                case "WITHDRAWAL" -> new TransactionType.Withdrawal(
+                        (String) map.get("destinationBankCode"),
+                        map.get("instantTransfer") != null && (boolean) map.get("instantTransfer")
+                );
+                case "DEPOSIT" -> new TransactionType.Deposit(
+                        (String) map.get("sourceReference")
+                );
+                case "MERCHANT_PAYMENT" -> new TransactionType.MerchantPayment(
+                        (String) map.get("merchantId"),
+                        (String) map.get("merchantName"),
+                        map.get("mcc") != null ? ((Number) map.get("mcc")).intValue() : 0
+                );
+                default -> throw new IllegalStateException("Unknown transaction kind: " + kind);
+            };
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to deserialize transaction type payload: " + payload, e);
+        }
     }
 
     protected TransactionEntity() {}

@@ -25,12 +25,16 @@ public class GatewayRoutesConfig {
     @Bean
     public RouterFunction<ServerResponse> gatewayRoutes() {
         return route("transaction_service")
-                .route(path("/v1/transactions/**"), http("http://localhost:8081"))
-                .filter(circuitBreaker("transactionCircuitBreaker", "forward:/fallback"))
+                .route(path("/api/v1/transactions/**"), http("http://127.0.0.1:8081"))
+                .filter(circuitBreaker("transactionCircuitBreaker", "/fallback"))
                 .build()
                 .and(route("notification_service")
-                        .route(path("/admin/notifications/**", "/api/v1/notifications/**"), http("http://localhost:8083"))
-                        .filter(circuitBreaker("notificationCircuitBreaker", "forward:/fallback"))
+                        .route(path("/api/v1/notifications/**"), http("http://127.0.0.1:8083"))
+                        .filter(circuitBreaker("notificationCircuitBreaker", "/fallback"))
+                        .build())
+                .and(route("fraud_service")
+                        .route(path("/api/v1/fraud/**"), http("http://127.0.0.1:8082"))
+                        .filter(circuitBreaker("fraudCircuitBreaker", "/fallback"))
                         .build());
     }
 }

@@ -74,10 +74,10 @@ public class NotificationOutboxEntity {
     private OutboxStatus status;
 
     @Column(name = "retry_count", nullable = false)
-    private int retryCount = 0;
+    private short retryCount = 0;
 
     @Column(name = "max_retries", nullable = false)
-    private int maxRetries = 5;
+    private short maxRetries = 5;
 
     @Column(name = "last_error", length = 1000)
     private String lastError;
@@ -179,7 +179,7 @@ public class NotificationOutboxEntity {
         public Builder alertSeverity(NotificationPayload.Severity v)  { e.alertSeverity = v;     return this; }
         public Builder payload(String v)                              { e.payload = v;           return this; }
         public Builder status(OutboxStatus v)                         { e.status = v;            return this; }
-        public Builder maxRetries(int v)                              { e.maxRetries = v;        return this; }
+        public Builder maxRetries(int v)                              { e.maxRetries = (short) v;        return this; }
         public NotificationOutboxEntity build()                       { return e; }
     }
 

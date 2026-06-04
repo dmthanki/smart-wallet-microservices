@@ -67,6 +67,7 @@ import java.util.UUID;
  *   Line count: ~80 lines vs ~120. More importantly, the contract is crystal-clear:
  *   this is a pure data carrier. There is no state mutation surface.
  */
+@com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
 public record TransactionDto(
         UUID transactionId,
         String idempotencyKey,
@@ -210,6 +211,7 @@ public record TransactionDto(
      * JAVA 21 — pattern matching in an instance method.
      * TRADITIONAL: instanceof chain with explicit casting and separate null-checks.
      */
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isPeerToPeer() {
         return type instanceof TransactionType.PeerToPeer;
     }

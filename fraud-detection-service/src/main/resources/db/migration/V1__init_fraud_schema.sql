@@ -134,7 +134,6 @@ CREATE TABLE velocity_counters (
 CREATE INDEX idx_velocity_account_window
     ON velocity_counters (account_id, window_type, window_start DESC);
 
--- Auto-cleanup: rows older than 2 days are stale
+-- Auto-cleanup: index for locating stale rows older than 2 days
 CREATE INDEX idx_velocity_cleanup
-    ON velocity_counters (window_start)
-    WHERE window_start < NOW() - INTERVAL '2 days';
+    ON velocity_counters (window_start);

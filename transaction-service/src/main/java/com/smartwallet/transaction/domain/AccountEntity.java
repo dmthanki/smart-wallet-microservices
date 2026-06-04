@@ -118,4 +118,16 @@ public class AccountEntity {
 
     // Required by JPA
     protected AccountEntity() {}
+
+    public AccountEntity(UUID id, String ownerId, String accountNumber, String accountType, BigDecimal availableBalance, BigDecimal reservedBalance, String currency, String status, String merchantId) {
+        this.id = id;
+        this.ownerId = ownerId;
+        this.accountNumber = accountNumber;
+        this.accountType = accountType;
+        this.availableBalance = availableBalance;
+        this.reservedBalance = reservedBalance;
+        this.currency = currency;
+        this.status = status;
+        this.merchantId = merchantId;
+    }
 }

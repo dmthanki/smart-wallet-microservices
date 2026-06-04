@@ -7,6 +7,7 @@ import com.smartwallet.fraud.domain.FraudLogEntity;
 import com.smartwallet.fraud.engine.FraudRuleEngine;
 import com.smartwallet.fraud.repository.FraudLogRepository;
 import com.smartwallet.fraud.repository.TransactionLogStore;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -48,10 +49,32 @@ public class FraudAnalysisConsumer {
     }
 
     /**
-     * Processes a single TransactionDto from the txn.created topic.
+     * Processes a single transaction from the txn.created topic.
+     * Handles both TransactionDto instances and fallback JSON String payloads.
      */
     @KafkaListener(topics = INPUT_TOPIC, groupId = "fraud-detection-group")
-    public void onTransaction(TransactionDto tx) {
+    public void onTransaction(ConsumerRecord<String, Object> record) {
+        Object value = record.value();
+        TransactionDto tx;
+        if (value instanceof TransactionDto) {
+            tx = (TransactionDto) value;
+        } else if (value instanceof String json) {
+            try {
+                tx = objectMapper.readValue(json, TransactionDto.class);
+            } catch (Exception e) {
+                try {
+                    tx = deserializeTransactionFallback(json);
+                } catch (Exception ex) {
+                    log.error("Failed to deserialize JSON string to TransactionDto: {}", json, ex);
+                    return;
+                }
+            }
+        } else {
+            log.error("Unknown payload type received on topic txn.created: {}", 
+                    value != null ? value.getClass().getName() : "null");
+            return;
+        }
+
         log.info("Received txn [{}] for fraud evaluation", tx.transactionId());
 
         try {
@@ -93,5 +116,65 @@ public class FraudAnalysisConsumer {
         } catch (Exception e) {
             log.error("Failed to persist fraud log for transaction [{}]: {}", tx.transactionId(), e.getMessage());
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private TransactionDto deserializeTransactionFallback(String json) throws Exception {
+        java.util.Map<String, Object> map = objectMapper.readValue(json, java.util.Map.class);
+        
+        java.util.UUID transactionId = java.util.UUID.fromString((String) map.get("transactionId"));
+        String idempotencyKey = (String) map.get("idempotencyKey");
+        String sourceAccountId = (String) map.get("sourceAccountId");
+        
+        java.math.BigDecimal amount;
+        Object amtObj = map.get("amount");
+        if (amtObj instanceof Number) {
+            amount = java.math.BigDecimal.valueOf(((Number) amtObj).doubleValue());
+        } else {
+            amount = new java.math.BigDecimal((String) amtObj);
+        }
+        
+        java.util.Currency currency = java.util.Currency.getInstance((String) map.get("currency"));
+        
+        java.util.Map<String, Object> typeMap = (java.util.Map<String, Object>) map.get("type");
+        com.smartwallet.common.enums.TransactionType type;
+        if (typeMap.containsKey("recipientAccountId")) {
+            type = new com.smartwallet.common.enums.TransactionType.PeerToPeer(
+                    (String) typeMap.get("recipientAccountId"),
+                    (String) typeMap.get("note")
+            );
+        } else if (typeMap.containsKey("merchantId")) {
+            type = new com.smartwallet.common.enums.TransactionType.MerchantPayment(
+                    (String) typeMap.get("merchantId"),
+                    (String) typeMap.get("merchantName"),
+                    typeMap.get("mcc") != null ? ((Number) typeMap.get("mcc")).intValue() : 0
+            );
+        } else if (typeMap.containsKey("destinationBankCode")) {
+            type = new com.smartwallet.common.enums.TransactionType.Withdrawal(
+                    (String) typeMap.get("destinationBankCode"),
+                    typeMap.get("instantTransfer") != null && (boolean) typeMap.get("instantTransfer")
+            );
+        } else if (typeMap.containsKey("sourceReference")) {
+            type = new com.smartwallet.common.enums.TransactionType.Deposit(
+                    (String) typeMap.get("sourceReference")
+            );
+        } else {
+            throw new IllegalArgumentException("Cannot determine transaction type from payload: " + json);
+        }
+        
+        TransactionDto.TransactionStatus status = TransactionDto.TransactionStatus.valueOf((String) map.get("status"));
+        String initiatedByUserId = (String) map.get("initiatedByUserId");
+        java.time.Instant createdAt = java.time.Instant.parse((String) map.get("createdAt"));
+        
+        java.time.Instant processedAt = null;
+        if (map.get("processedAt") != null) {
+            processedAt = java.time.Instant.parse((String) map.get("processedAt"));
+        }
+        
+        return new TransactionDto(
+                transactionId, idempotencyKey, sourceAccountId,
+                amount, currency, type, status,
+                initiatedByUserId, createdAt, processedAt
+        );
     }
 }

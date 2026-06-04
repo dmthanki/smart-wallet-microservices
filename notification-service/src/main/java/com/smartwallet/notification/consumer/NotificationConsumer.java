@@ -211,6 +211,25 @@ public class NotificationConsumer {
         return switch (value) {
             case TransactionDto tx          -> buildFromTransaction(tx);
             case FraudVerdictEvent verdict  -> buildFromVerdict(verdict);
+            case String json -> {
+                try {
+                    if (TOPIC_TXN_CREATED.equals(topic)) {
+                        TransactionDto tx;
+                        try {
+                            tx = objectMapper.readValue(json, TransactionDto.class);
+                        } catch (Exception e) {
+                            tx = deserializeTransactionFallback(json);
+                        }
+                        yield buildFromTransaction(tx);
+                    } else if (TOPIC_FRAUD_VERDICT.equals(topic)) {
+                        yield buildFromVerdict(objectMapper.readValue(json, FraudVerdictEvent.class));
+                    } else {
+                        throw new IllegalArgumentException("Unknown topic for string payload: " + topic);
+                    }
+                } catch (Exception e) {
+                    throw new IllegalArgumentException("Failed to deserialize JSON string payload on topic " + topic, e);
+                }
+            }
             case null                       -> throw new IllegalArgumentException(
                     "Null event payload on topic: " + topic);
             default                         -> throw new IllegalArgumentException(
@@ -369,5 +388,65 @@ public class NotificationConsumer {
                 .build();
 
         return outboxRepository.save(entry);
+    }
+
+    @SuppressWarnings("unchecked")
+    private TransactionDto deserializeTransactionFallback(String json) throws Exception {
+        java.util.Map<String, Object> map = objectMapper.readValue(json, java.util.Map.class);
+        
+        java.util.UUID transactionId = java.util.UUID.fromString((String) map.get("transactionId"));
+        String idempotencyKey = (String) map.get("idempotencyKey");
+        String sourceAccountId = (String) map.get("sourceAccountId");
+        
+        java.math.BigDecimal amount;
+        Object amtObj = map.get("amount");
+        if (amtObj instanceof Number) {
+            amount = java.math.BigDecimal.valueOf(((Number) amtObj).doubleValue());
+        } else {
+            amount = new java.math.BigDecimal((String) amtObj);
+        }
+        
+        java.util.Currency currency = java.util.Currency.getInstance((String) map.get("currency"));
+        
+        java.util.Map<String, Object> typeMap = (java.util.Map<String, Object>) map.get("type");
+        TransactionType type;
+        if (typeMap.containsKey("recipientAccountId")) {
+            type = new TransactionType.PeerToPeer(
+                    (String) typeMap.get("recipientAccountId"),
+                    (String) typeMap.get("note")
+            );
+        } else if (typeMap.containsKey("merchantId")) {
+            type = new TransactionType.MerchantPayment(
+                    (String) typeMap.get("merchantId"),
+                    (String) typeMap.get("merchantName"),
+                    typeMap.get("mcc") != null ? ((Number) typeMap.get("mcc")).intValue() : 0
+            );
+        } else if (typeMap.containsKey("destinationBankCode")) {
+            type = new TransactionType.Withdrawal(
+                    (String) typeMap.get("destinationBankCode"),
+                    typeMap.get("instantTransfer") != null && (boolean) typeMap.get("instantTransfer")
+            );
+        } else if (typeMap.containsKey("sourceReference")) {
+            type = new TransactionType.Deposit(
+                    (String) typeMap.get("sourceReference")
+            );
+        } else {
+            throw new IllegalArgumentException("Cannot determine transaction type from payload: " + json);
+        }
+        
+        TransactionDto.TransactionStatus status = TransactionDto.TransactionStatus.valueOf((String) map.get("status"));
+        String initiatedByUserId = (String) map.get("initiatedByUserId");
+        java.time.Instant createdAt = java.time.Instant.parse((String) map.get("createdAt"));
+        
+        java.time.Instant processedAt = null;
+        if (map.get("processedAt") != null) {
+            processedAt = java.time.Instant.parse((String) map.get("processedAt"));
+        }
+        
+        return new TransactionDto(
+                transactionId, idempotencyKey, sourceAccountId,
+                amount, currency, type, status,
+                initiatedByUserId, createdAt, processedAt
+        );
     }
 }

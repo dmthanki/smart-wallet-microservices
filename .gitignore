@@ -1,0 +1,30 @@
+# Build directories
+target/
+**/target/
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+
+# IDE / Editor configurations
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+
+# OS/System files
+.DS_Store
+Thumbs.db
+
+# Output logs and profiles
+*.log
+**/logs/
+chrome-profile/
+
+# Temporarily generated visual testing artifacts
+*.png
+screenshot_new.png

@@ -1,5 +1,8 @@
 package com.smartwallet.common.enums;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
 /**
  * Sealed hierarchy of transaction types.
  *
@@ -11,6 +14,17 @@ package com.smartwallet.common.enums;
  * record that can carry its own contextual data. Pattern matching for switch then gives us
  * exhaustive, compile-time-verified dispatch with zero casting.
  */
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
+    property = "type"
+)
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = TransactionType.PeerToPeer.class, name = "PeerToPeer"),
+    @JsonSubTypes.Type(value = TransactionType.Withdrawal.class, name = "Withdrawal"),
+    @JsonSubTypes.Type(value = TransactionType.Deposit.class, name = "Deposit"),
+    @JsonSubTypes.Type(value = TransactionType.MerchantPayment.class, name = "MerchantPayment")
+})
 public sealed interface TransactionType
         permits TransactionType.PeerToPeer,
                 TransactionType.Withdrawal,
